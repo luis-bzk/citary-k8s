@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: citary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: citary-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3001
+        envFrom:
+        - configMapRef:
+            name: citary-config
+        - secretRef:
+            name: citary-secret

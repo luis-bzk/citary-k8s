@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: citary
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  
+  # Database
+  - database/pvc.yaml
+  - database/deployment.yaml
+  - database/service.yaml
+  
+  # Backend
+  - backend/deployment.yaml
+  - backend/service.yaml
+  
+  # Frontend
+  - frontend/deployment.yaml
+  - frontend/service.yaml
