@@ -108,20 +108,10 @@ CREATE TYPE data.relationship_type AS ENUM(
 CREATE TYPE notifications.notification_status AS ENUM('pending', 'sent', 'delivered', 'read', 'failed');
 
 -- ============================================================================
--- TABLAS CORE (Configuración del sistema)
+-- TABLAS CORE (Configuración del sistema) - ORDEN LÓGICO
 -- ============================================================================
--- Tipos de identificación
-CREATE TABLE
-  core.core_identification_type (
-    ity_id SERIAL PRIMARY KEY,
-    ity_name VARCHAR(100) NOT NULL,
-    ity_code VARCHAR(10) UNIQUE NOT NULL,
-    ity_description TEXT,
-    ity_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ity_record_status VARCHAR(1) NOT NULL DEFAULT '0'
-  );
 
--- Países
+-- 1. PAÍSES (Primera tabla, sin dependencias)
 CREATE TABLE
   core.core_country (
     cou_id SERIAL PRIMARY KEY,
@@ -132,7 +122,7 @@ CREATE TABLE
     cou_record_status VARCHAR(1) NOT NULL DEFAULT '0'
   );
 
--- Provincias
+-- 2. PROVINCIAS (Depende de país)
 CREATE TABLE
   core.core_province (
     pro_id SERIAL PRIMARY KEY,
@@ -144,7 +134,7 @@ CREATE TABLE
     CONSTRAINT fk1_core_province FOREIGN KEY (id_country) REFERENCES core.core_country (cou_id)
   );
 
--- Ciudades
+-- 3. CIUDADES (Depende de país y provincia)
 CREATE TABLE
   core.core_city (
     cit_id SERIAL PRIMARY KEY,
@@ -158,7 +148,18 @@ CREATE TABLE
     CONSTRAINT fk2_core_city FOREIGN KEY (id_province) REFERENCES core.core_province (pro_id)
   );
 
--- Roles del sistema
+-- 4. TIPOS DE IDENTIFICACIÓN (Sin dependencias)
+CREATE TABLE
+  core.core_identification_type (
+    ity_id SERIAL PRIMARY KEY,
+    ity_name VARCHAR(100) NOT NULL,
+    ity_code VARCHAR(10) UNIQUE NOT NULL,
+    ity_description TEXT,
+    ity_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ity_record_status VARCHAR(1) NOT NULL DEFAULT '0'
+  );
+
+-- 5. ROLES DEL SISTEMA (Sin dependencias)
 CREATE TABLE
   core.core_role (
     rol_id SERIAL PRIMARY KEY,
@@ -171,9 +172,31 @@ CREATE TABLE
   );
 
 -- ============================================================================
--- TABLAS DATA (Entidades principales)
+-- TABLAS DATA (Entidades principales) - ORDEN LÓGICO
 -- ============================================================================
--- Direcciones
+
+-- 6. USUARIOS (Entidad base, sin dependencia de persona)
+CREATE TABLE
+  data.data_user (
+    use_id SERIAL PRIMARY KEY,
+    id_role INTEGER NOT NULL,
+    use_email VARCHAR(255) UNIQUE NOT NULL,
+    use_password_hash VARCHAR(255) NOT NULL,
+    use_email_verified BOOLEAN DEFAULT FALSE,
+    use_phone_verified BOOLEAN DEFAULT FALSE,
+    use_two_factor_enabled BOOLEAN DEFAULT FALSE,
+    use_two_factor_secret VARCHAR(255),
+    use_last_login TIMESTAMP,
+    use_login_attempts INTEGER DEFAULT 0,
+    use_locked_until TIMESTAMP,
+    use_terms_accepted_at TIMESTAMP,
+    use_privacy_accepted_at TIMESTAMP,
+    use_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    use_record_status VARCHAR(1) NOT NULL DEFAULT '0',
+    CONSTRAINT fk1_data_user FOREIGN KEY (id_role) REFERENCES core.core_role (rol_id)
+  );
+
+-- 7. DIRECCIONES (Puede existir independientemente)
 CREATE TABLE
   data.data_address (
     add_id SERIAL PRIMARY KEY,
@@ -193,7 +216,7 @@ CREATE TABLE
     CONSTRAINT fk3_data_address FOREIGN KEY (id_city) REFERENCES core.core_city (cit_id)
   );
 
--- Información de contacto
+-- 8. INFORMACIÓN DE CONTACTO (Puede existir independientemente)
 CREATE TABLE
   data.data_contact_info (
     con_id SERIAL PRIMARY KEY,
@@ -209,12 +232,13 @@ CREATE TABLE
     con_record_status VARCHAR(1) NOT NULL DEFAULT '0'
   );
 
--- Personas
+-- 9. PERSONAS (Ahora con relación OPCIONAL a usuario)
 CREATE TABLE
   data.data_person (
     per_id SERIAL PRIMARY KEY,
-    id_identification_type INTEGER NOT NULL,
-    per_document_number VARCHAR(50) NOT NULL,
+    id_user INTEGER, -- NULLABLE - Una persona puede existir sin usuario
+    id_identification_type INTEGER,
+    per_document_number VARCHAR(50),
     per_first_name VARCHAR(100) NOT NULL,
     per_middle_name VARCHAR(100),
     per_last_name VARCHAR(100) NOT NULL,
@@ -228,37 +252,15 @@ CREATE TABLE
     per_notes TEXT,
     per_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     per_record_status VARCHAR(1) NOT NULL DEFAULT '0',
-    CONSTRAINT fk1_data_person FOREIGN KEY (id_identification_type) REFERENCES core.core_identification_type (ity_id),
-    CONSTRAINT fk2_data_person FOREIGN KEY (id_nationality) REFERENCES core.core_country (cou_id),
-    CONSTRAINT fk3_data_person FOREIGN KEY (id_address) REFERENCES data.data_address (add_id),
-    CONSTRAINT fk4_data_person FOREIGN KEY (id_contact_info) REFERENCES data.data_contact_info (con_id),
+    CONSTRAINT fk1_data_person FOREIGN KEY (id_user) REFERENCES data.data_user (use_id),
+    CONSTRAINT fk2_data_person FOREIGN KEY (id_identification_type) REFERENCES core.core_identification_type (ity_id),
+    CONSTRAINT fk3_data_person FOREIGN KEY (id_nationality) REFERENCES core.core_country (cou_id),
+    CONSTRAINT fk4_data_person FOREIGN KEY (id_address) REFERENCES data.data_address (add_id),
+    CONSTRAINT fk5_data_person FOREIGN KEY (id_contact_info) REFERENCES data.data_contact_info (con_id),
     CONSTRAINT uk1_data_person UNIQUE (id_identification_type, per_document_number)
   );
 
--- Usuarios del sistema
-CREATE TABLE
-  data.data_user (
-    use_id SERIAL PRIMARY KEY,
-    id_person INTEGER NOT NULL,
-    id_role INTEGER NOT NULL,
-    use_email VARCHAR(255) UNIQUE NOT NULL,
-    use_password_hash VARCHAR(255) NOT NULL,
-    use_email_verified BOOLEAN DEFAULT FALSE,
-    use_phone_verified BOOLEAN DEFAULT FALSE,
-    use_two_factor_enabled BOOLEAN DEFAULT FALSE,
-    use_two_factor_secret VARCHAR(255),
-    use_last_login TIMESTAMP,
-    use_login_attempts INTEGER DEFAULT 0,
-    use_locked_until TIMESTAMP,
-    use_terms_accepted_at TIMESTAMP,
-    use_privacy_accepted_at TIMESTAMP,
-    use_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    use_record_status VARCHAR(1) NOT NULL DEFAULT '0',
-    CONSTRAINT fk1_data_user FOREIGN KEY (id_person) REFERENCES data.data_person (per_id),
-    CONSTRAINT fk2_data_user FOREIGN KEY (id_role) REFERENCES core.core_role (rol_id)
-  );
-
--- Sesiones de usuario
+-- 10. SESIONES DE USUARIO
 CREATE TABLE
   data.data_user_session (
     ses_id SERIAL PRIMARY KEY,
@@ -274,7 +276,7 @@ CREATE TABLE
     CONSTRAINT fk1_data_user_session FOREIGN KEY (id_user) REFERENCES data.data_user (use_id)
   );
 
--- Tokens de recuperación de contraseña
+-- 11. TOKENS DE RECUPERACIÓN DE CONTRASEÑA
 CREATE TABLE
   data.data_password_reset_token (
     prt_id SERIAL PRIMARY KEY,
@@ -287,7 +289,7 @@ CREATE TABLE
     CONSTRAINT fk1_data_password_reset_token FOREIGN KEY (id_user) REFERENCES data.data_user (use_id)
   );
 
--- Organizaciones
+-- 12. ORGANIZACIONES
 CREATE TABLE
   data.data_organization (
     org_id SERIAL PRIMARY KEY,
@@ -311,7 +313,7 @@ CREATE TABLE
     CONSTRAINT fk3_data_organization FOREIGN KEY (id_contact_info) REFERENCES data.data_contact_info (con_id)
   );
 
--- Miembros de organización
+-- 13. MIEMBROS DE ORGANIZACIÓN
 CREATE TABLE
   data.data_organization_member (
     mem_id SERIAL PRIMARY KEY,
@@ -333,7 +335,7 @@ CREATE TABLE
     CONSTRAINT uk1_data_organization_member UNIQUE (id_organization, id_user)
   );
 
--- Ubicaciones/Consultorios
+-- 14. UBICACIONES/CONSULTORIOS
 CREATE TABLE
   data.data_location (
     loc_id SERIAL PRIMARY KEY,
@@ -357,7 +359,7 @@ CREATE TABLE
     CONSTRAINT fk3_data_location FOREIGN KEY (id_contact_info) REFERENCES data.data_contact_info (con_id)
   );
 
--- Especialidades médicas/servicios
+-- 15. ESPECIALIDADES MÉDICAS/SERVICIOS
 CREATE TABLE
   data.data_specialty (
     spe_id SERIAL PRIMARY KEY,
@@ -375,7 +377,7 @@ CREATE TABLE
     CONSTRAINT fk1_data_specialty FOREIGN KEY (id_organization) REFERENCES data.data_organization (org_id)
   );
 
--- Profesionales y sus especialidades
+-- 16. PROFESIONALES Y SUS ESPECIALIDADES
 CREATE TABLE
   data.data_professional_specialty (
     prs_id SERIAL PRIMARY KEY,
@@ -395,7 +397,7 @@ CREATE TABLE
     CONSTRAINT uk1_data_professional_specialty UNIQUE (id_organization_member, id_specialty)
   );
 
--- Horarios de trabajo
+-- 17. HORARIOS DE TRABAJO
 CREATE TABLE
   data.data_work_schedule (
     wsc_id SERIAL PRIMARY KEY,
@@ -420,7 +422,7 @@ CREATE TABLE
     CONSTRAINT fk2_data_work_schedule FOREIGN KEY (id_location) REFERENCES data.data_location (loc_id)
   );
 
--- Excepciones de horarios
+-- 18. EXCEPCIONES DE HORARIOS
 CREATE TABLE
   data.data_schedule_exception (
     sce_id SERIAL PRIMARY KEY,
@@ -442,11 +444,13 @@ CREATE TABLE
 -- ============================================================================
 -- TABLAS SCHEDULING (Sistema de citas)
 -- ============================================================================
--- Pacientes
+
+-- 19. PACIENTES (Ahora con relación opcional a usuario)
 CREATE TABLE
   scheduling.scheduling_patient (
     pat_id SERIAL PRIMARY KEY,
-    id_person INTEGER NOT NULL,
+    id_user INTEGER, -- NULLABLE - Un paciente puede no tener usuario
+    id_person INTEGER NOT NULL, -- Siempre debe tener datos de persona
     pat_code VARCHAR(50) UNIQUE,
     pat_primary_insurance VARCHAR(255),
     pat_secondary_insurance VARCHAR(255),
@@ -458,12 +462,13 @@ CREATE TABLE
     id_guardian INTEGER,
     pat_created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     pat_record_status VARCHAR(1) NOT NULL DEFAULT '0',
-    CONSTRAINT fk1_scheduling_patient FOREIGN KEY (id_person) REFERENCES data.data_person (per_id),
-    CONSTRAINT fk2_scheduling_patient FOREIGN KEY (id_emergency_contact) REFERENCES data.data_contact_info (con_id),
-    CONSTRAINT fk3_scheduling_patient FOREIGN KEY (id_guardian) REFERENCES scheduling.scheduling_patient (pat_id)
+    CONSTRAINT fk1_scheduling_patient FOREIGN KEY (id_user) REFERENCES data.data_user (use_id),
+    CONSTRAINT fk2_scheduling_patient FOREIGN KEY (id_person) REFERENCES data.data_person (per_id),
+    CONSTRAINT fk3_scheduling_patient FOREIGN KEY (id_emergency_contact) REFERENCES data.data_contact_info (con_id),
+    CONSTRAINT fk4_scheduling_patient FOREIGN KEY (id_guardian) REFERENCES scheduling.scheduling_patient (pat_id)
   );
 
--- Relaciones entre pacientes
+-- 20. RELACIONES ENTRE PACIENTES
 CREATE TABLE
   scheduling.scheduling_patient_relationship (
     rel_id SERIAL PRIMARY KEY,
@@ -486,7 +491,7 @@ CREATE TABLE
     )
   );
 
--- Citas principales
+-- 21. CITAS PRINCIPALES
 CREATE TABLE
   scheduling.scheduling_appointment (
     app_id SERIAL PRIMARY KEY,
@@ -538,7 +543,7 @@ CREATE TABLE
     CONSTRAINT fk8_scheduling_appointment FOREIGN KEY (id_follow_up_appointment) REFERENCES scheduling.scheduling_appointment (app_id)
   );
 
--- Recordatorios de citas
+-- 22. RECORDATORIOS DE CITAS
 CREATE TABLE
   scheduling.scheduling_appointment_reminder (
     rem_id SERIAL PRIMARY KEY,
@@ -555,7 +560,7 @@ CREATE TABLE
     CONSTRAINT fk1_scheduling_appointment_reminder FOREIGN KEY (id_appointment) REFERENCES scheduling.scheduling_appointment (app_id)
   );
 
--- Bloqueos de horarios
+-- 23. BLOQUEOS DE HORARIOS
 CREATE TABLE
   scheduling.scheduling_time_block (
     blo_id SERIAL PRIMARY KEY,
@@ -581,7 +586,8 @@ CREATE TABLE
 -- ============================================================================
 -- TABLAS MEDICAL (Datos médicos)
 -- ============================================================================
--- Historiales médicos
+
+-- 24. HISTORIALES MÉDICOS
 CREATE TABLE
   medical.medical_record (
     rec_id SERIAL PRIMARY KEY,
@@ -602,7 +608,7 @@ CREATE TABLE
     CONSTRAINT fk3_medical_record FOREIGN KEY (id_created_by) REFERENCES data.data_user (use_id)
   );
 
--- Consultas médicas
+-- 25. CONSULTAS MÉDICAS
 CREATE TABLE
   medical.medical_consultation (
     con_id SERIAL PRIMARY KEY,
@@ -632,7 +638,7 @@ CREATE TABLE
     CONSTRAINT fk3_medical_consultation FOREIGN KEY (id_professional) REFERENCES data.data_organization_member (mem_id)
   );
 
--- Diagnósticos
+-- 26. DIAGNÓSTICOS
 CREATE TABLE
   medical.medical_diagnosis (
     dia_id SERIAL PRIMARY KEY,
@@ -649,7 +655,7 @@ CREATE TABLE
     CONSTRAINT fk1_medical_diagnosis FOREIGN KEY (id_consultation) REFERENCES medical.medical_consultation (con_id)
   );
 
--- Prescripciones
+-- 27. PRESCRIPCIONES
 CREATE TABLE
   medical.medical_prescription (
     pre_id SERIAL PRIMARY KEY,
@@ -669,7 +675,7 @@ CREATE TABLE
     CONSTRAINT fk1_medical_prescription FOREIGN KEY (id_consultation) REFERENCES medical.medical_consultation (con_id)
   );
 
--- Órdenes de laboratorio
+-- 28. ÓRDENES DE LABORATORIO
 CREATE TABLE
   medical.medical_lab_order (
     lab_id SERIAL PRIMARY KEY,
@@ -692,7 +698,7 @@ CREATE TABLE
     CONSTRAINT fk2_medical_lab_order FOREIGN KEY (id_interpreted_by) REFERENCES data.data_organization_member (mem_id)
   );
 
--- Archivos adjuntos médicos
+-- 29. ARCHIVOS ADJUNTOS MÉDICOS
 CREATE TABLE
   medical.medical_attachment (
     att_id SERIAL PRIMARY KEY,
@@ -715,7 +721,8 @@ CREATE TABLE
 -- ============================================================================
 -- TABLAS NOTIFICATIONS (Sistema de notificaciones)
 -- ============================================================================
--- Plantillas de notificaciones
+
+-- 30. PLANTILLAS DE NOTIFICACIONES
 CREATE TABLE
   notifications.notifications_template (
     tem_id SERIAL PRIMARY KEY,
@@ -731,7 +738,7 @@ CREATE TABLE
     CONSTRAINT fk1_notifications_template FOREIGN KEY (id_organization) REFERENCES data.data_organization (org_id)
   );
 
--- Notificaciones enviadas
+-- 31. NOTIFICACIONES ENVIADAS
 CREATE TABLE
   notifications.notifications_sent (
     not_id SERIAL PRIMARY KEY,
@@ -758,7 +765,8 @@ CREATE TABLE
 -- ============================================================================
 -- TABLAS AUDIT (Auditoría y logs)
 -- ============================================================================
--- Log de actividades del sistema
+
+-- 32. LOG DE ACTIVIDADES DEL SISTEMA
 CREATE TABLE
   audit.audit_activity_log (
     log_id SERIAL PRIMARY KEY,
@@ -777,7 +785,7 @@ CREATE TABLE
     CONSTRAINT fk2_audit_activity_log FOREIGN KEY (id_organization) REFERENCES data.data_organization (org_id)
   );
 
--- Log de accesos a historiales médicos
+-- 33. LOG DE ACCESOS A HISTORIALES MÉDICOS
 CREATE TABLE
   audit.audit_medical_access_log (
     mal_id SERIAL PRIMARY KEY,
@@ -979,11 +987,11 @@ FROM
   scheduling.scheduling_appointment a
   JOIN scheduling.scheduling_patient pt ON a.id_patient = pt.pat_id
   JOIN data.data_person p ON pt.id_person = p.per_id
-  JOIN core.core_identification_type it ON p.id_identification_type = it.ity_id
+  LEFT JOIN core.core_identification_type it ON p.id_identification_type = it.ity_id
   LEFT JOIN data.data_contact_info cp ON p.id_contact_info = cp.con_id
   LEFT JOIN data.data_organization_member om ON a.id_professional = om.mem_id
   LEFT JOIN data.data_user u ON om.id_user = u.use_id
-  LEFT JOIN data.data_person prof ON u.id_person = prof.per_id
+  LEFT JOIN data.data_person prof ON prof.id_user = u.use_id
   LEFT JOIN data.data_specialty s ON a.id_specialty = s.spe_id
   LEFT JOIN data.data_location l ON a.id_location = l.loc_id
   LEFT JOIN data.data_organization o ON a.id_organization = o.org_id
@@ -1010,7 +1018,7 @@ FROM
   data.data_work_schedule ws
   JOIN data.data_organization_member om ON ws.id_organization_member = om.mem_id
   JOIN data.data_user u ON om.id_user = u.use_id
-  JOIN data.data_person p ON u.id_person = p.per_id
+  JOIN data.data_person p ON p.id_user = u.use_id
   LEFT JOIN data.data_location l ON ws.id_location = l.loc_id
   LEFT JOIN data.data_professional_specialty ps ON om.mem_id = ps.id_organization_member
   LEFT JOIN data.data_specialty s ON ps.id_specialty = s.spe_id
@@ -1263,11 +1271,10 @@ COMMENT ON SCHEMA notifications IS 'Sistema de notificaciones y plantillas';
 
 COMMENT ON SCHEMA audit IS 'Auditoría y logs del sistema';
 
--- Mejoras implementadas:
--- 1. Nomenclatura consistente con el estándar solicitado
--- 2. Relaciones geográficas en cascada (país -> provincia -> ciudad)
--- 3. Foreign keys correctamente establecidas para selecciones dependientes
--- 4. Estructura modular y escalable
--- 5. Índices optimizados para consultas geográficas
--- 6. Vista especializada para selecciones en cascada
--- 7. Datos iniciales para Ecuador con estructura jerárquica completa
+-- CAMBIOS REALIZADOS:
+-- 1. Usuario es ahora la entidad base sin dependencia de persona
+-- 2. Persona tiene relación opcional con usuario (id_user NULLABLE)
+-- 3. Paciente tiene relación opcional con usuario pero requiere persona
+-- 4. Orden lógico de tablas: países -> usuarios -> personas -> pacientes
+-- 5. Corregidas las vistas para reflejar las nuevas relaciones
+-- 6. Mantenidas las funcionalidades del sistema
