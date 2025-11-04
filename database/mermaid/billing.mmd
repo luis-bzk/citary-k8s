@@ -1,0 +1,277 @@
+erDiagram
+    %% ============================================================================
+    %% EXTENSIÓN SAAS - SISTEMA DE SUSCRIPCIONES Y PAGOS
+    %% Diagrama de Entidad-Relación en Mermaid
+    %% ============================================================================
+
+    %% SAAS SCHEMA - Configuración de planes
+    saas_plan {
+        SERIAL pla_id PK
+        VARCHAR pla_name
+        ENUM pla_type
+        TEXT pla_description
+        DECIMAL pla_price
+        DECIMAL pla_setup_fee
+        ENUM pla_billing_interval
+        INTEGER pla_trial_days
+        BOOLEAN pla_is_public
+        BOOLEAN pla_is_popular
+        INTEGER pla_sort_order
+        JSONB pla_features
+        TIMESTAMP pla_created_date
+        VARCHAR pla_record_status
+    }
+
+    saas_plan_limit {
+        SERIAL pli_id PK
+        INTEGER id_plan FK
+        ENUM pli_limit_type
+        INTEGER pli_limit_value
+        INTEGER pli_soft_limit
+        TIMESTAMP pli_created_date
+        VARCHAR pli_record_status
+    }
+
+    saas_addon {
+        SERIAL add_id PK
+        VARCHAR add_name
+        TEXT add_description
+        DECIMAL add_price
+        ENUM add_billing_interval
+        ENUM add_limit_type
+        INTEGER add_limit_value
+        BOOLEAN add_is_public
+        TIMESTAMP add_created_date
+        VARCHAR add_record_status
+    }
+
+    saas_coupon {
+        SERIAL cou_id PK
+        VARCHAR cou_code UK
+        TEXT cou_description
+        VARCHAR cou_discount_type
+        DECIMAL cou_discount_value
+        INTEGER cou_max_uses
+        INTEGER cou_uses_count
+        TIMESTAMP cou_valid_from
+        TIMESTAMP cou_valid_until
+        JSONB cou_applies_to
+        DECIMAL cou_minimum_amount
+        TIMESTAMP cou_created_date
+        VARCHAR cou_record_status
+    }
+
+    saas_subscription_event {
+        SERIAL evt_id PK
+        INTEGER id_subscription FK
+        VARCHAR evt_type
+        INTEGER evt_from_plan FK
+        INTEGER evt_to_plan FK
+        JSONB evt_metadata
+        TIMESTAMP evt_created_date
+        VARCHAR evt_record_status
+    }
+
+    saas_usage_metric {
+        SERIAL met_id PK
+        INTEGER id_organization FK
+        VARCHAR met_metric_type
+        INTEGER met_metric_value
+        TIMESTAMP met_period_start
+        TIMESTAMP met_period_end
+        TIMESTAMP met_created_date
+        VARCHAR met_record_status
+    }
+
+    %% BILLING SCHEMA - Suscripciones y facturación
+    billing_subscription {
+        SERIAL sub_id PK
+        INTEGER id_organization FK
+        INTEGER id_plan FK
+        INTEGER id_coupon FK
+        ENUM sub_status
+        TIMESTAMP sub_started_at
+        TIMESTAMP sub_trial_ends_at
+        TIMESTAMP sub_current_period_start
+        TIMESTAMP sub_current_period_end
+        TIMESTAMP sub_canceled_at
+        TEXT sub_canceled_reason
+        TIMESTAMP sub_ended_at
+        BOOLEAN sub_auto_renew
+        DECIMAL sub_price
+        DECIMAL sub_discount_amount
+        VARCHAR sub_external_id
+        TEXT sub_notes
+        TIMESTAMP sub_created_date
+        VARCHAR sub_record_status
+    }
+
+    billing_subscription_addon {
+        SERIAL sad_id PK
+        INTEGER id_subscription FK
+        INTEGER id_addon FK
+        INTEGER sad_quantity
+        DECIMAL sad_price
+        TIMESTAMP sad_started_at
+        TIMESTAMP sad_ended_at
+        TIMESTAMP sad_created_date
+        VARCHAR sad_record_status
+    }
+
+    billing_usage_limit {
+        SERIAL usg_id PK
+        INTEGER id_organization FK
+        ENUM usg_limit_type
+        INTEGER usg_current_usage
+        INTEGER usg_limit_value
+        TIMESTAMP usg_period_start
+        TIMESTAMP usg_period_end
+        TIMESTAMP usg_last_reset
+        TIMESTAMP usg_created_date
+        VARCHAR usg_record_status
+    }
+
+    billing_invoice {
+        SERIAL inv_id PK
+        INTEGER id_subscription FK
+        VARCHAR inv_number UK
+        ENUM inv_status
+        DECIMAL inv_subtotal
+        DECIMAL inv_discount_amount
+        DECIMAL inv_tax_amount
+        DECIMAL inv_total
+        VARCHAR inv_currency
+        TIMESTAMP inv_issued_at
+        TIMESTAMP inv_due_at
+        TIMESTAMP inv_paid_at
+        TIMESTAMP inv_period_start
+        TIMESTAMP inv_period_end
+        VARCHAR inv_external_id
+        TEXT inv_pdf_url
+        TEXT inv_notes
+        TIMESTAMP inv_created_date
+        VARCHAR inv_record_status
+    }
+
+    billing_invoice_line {
+        SERIAL lin_id PK
+        INTEGER id_invoice FK
+        TEXT lin_description
+        INTEGER lin_quantity
+        DECIMAL lin_unit_price
+        DECIMAL lin_total
+        TIMESTAMP lin_period_start
+        TIMESTAMP lin_period_end
+        VARCHAR lin_type
+        JSONB lin_metadata
+        TIMESTAMP lin_created_date
+        VARCHAR lin_record_status
+    }
+
+    billing_payment_method {
+        SERIAL pay_id PK
+        INTEGER id_organization FK
+        ENUM pay_type
+        VARCHAR pay_provider
+        VARCHAR pay_external_id
+        VARCHAR pay_last_four
+        VARCHAR pay_brand
+        INTEGER pay_expiry_month
+        INTEGER pay_expiry_year
+        VARCHAR pay_cardholder_name
+        BOOLEAN pay_is_default
+        BOOLEAN pay_is_verified
+        JSONB pay_metadata
+        TIMESTAMP pay_created_date
+        VARCHAR pay_record_status
+    }
+
+    billing_payment {
+        SERIAL pay_id PK
+        INTEGER id_invoice FK
+        INTEGER id_subscription FK
+        INTEGER id_payment_method FK
+        VARCHAR pay_external_id
+        VARCHAR pay_provider
+        ENUM pay_status
+        DECIMAL pay_amount
+        VARCHAR pay_currency
+        TEXT pay_description
+        TIMESTAMP pay_processed_at
+        TEXT pay_failed_reason
+        DECIMAL pay_refunded_amount
+        DECIMAL pay_fees
+        JSONB pay_metadata
+        TIMESTAMP pay_created_date
+        VARCHAR pay_record_status
+    }
+
+    billing_webhook {
+        SERIAL web_id PK
+        VARCHAR web_provider
+        VARCHAR web_event_type
+        VARCHAR web_external_id
+        JSONB web_payload
+        BOOLEAN web_processed
+        TIMESTAMP web_processed_at
+        TEXT web_error_message
+        INTEGER web_retry_count
+        TIMESTAMP web_created_date
+        VARCHAR web_record_status
+    }
+
+    %% REFERENCIA A TABLA EXTERNA (del core.sql)
+    data_organization {
+        SERIAL org_id PK
+        VARCHAR org_name
+        VARCHAR org_subscription_plan
+        TIMESTAMP org_subscription_expires_at
+    }
+
+    %% ============================================================================
+    %% RELACIONES
+    %% ============================================================================
+
+    %% SAAS Plan relationships
+    saas_plan ||--o{ saas_plan_limit : "has limits"
+    saas_plan ||--o{ billing_subscription : "subscribed to"
+    saas_plan ||--o{ saas_subscription_event : "from plan"
+    saas_plan ||--o{ saas_subscription_event : "to plan"
+
+    %% SAAS Coupon relationships
+    saas_coupon ||--o{ billing_subscription : "applied to"
+
+    %% SAAS Add-on relationships
+    saas_addon ||--o{ billing_subscription_addon : "contracted"
+
+    %% BILLING Subscription relationships
+    data_organization ||--o{ billing_subscription : "subscribes"
+    billing_subscription ||--o{ billing_subscription_addon : "has add-ons"
+    billing_subscription ||--o{ billing_invoice : "generates"
+    billing_subscription ||--o{ billing_payment : "receives"
+    billing_subscription ||--o{ saas_subscription_event : "has events"
+
+    %% BILLING Usage relationships
+    data_organization ||--o{ billing_usage_limit : "has limits"
+    data_organization ||--o{ saas_usage_metric : "tracks usage"
+
+    %% BILLING Invoice relationships
+    billing_invoice ||--o{ billing_invoice_line : "contains"
+    billing_invoice ||--o{ billing_payment : "paid by"
+
+    %% BILLING Payment Method relationships
+    data_organization ||--o{ billing_payment_method : "has methods"
+    billing_payment_method ||--o{ billing_payment : "used for"
+
+    %% ============================================================================
+    %% NOTAS SOBRE ENUMS
+    %% ============================================================================
+    %% subscription_status: trial, active, past_due, canceled, suspended, expired
+    %% plan_type: free, basic, professional, enterprise, custom
+    %% billing_interval: monthly, quarterly, annually, one_time
+    %% invoice_status: draft, pending, paid, overdue, cancelled, refunded
+    %% payment_method_type: credit_card, debit_card, bank_transfer, paypal, stripe, mercadopago, other
+    %% payment_status: pending, processing, completed, failed, cancelled, refunded
+    %% limit_type: appointments_per_month, active_patients, storage_gb, api_calls_per_month,
+    %%             locations, professionals, admin_users, custom_integrations,
+    %%             advanced_reports, priority_support

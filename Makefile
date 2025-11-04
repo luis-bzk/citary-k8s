@@ -1,9 +1,12 @@
-.PHONY: help build-images deploy-db deploy-backend-db deploy-all clean-db clean-all status logs restart-db restart-backend restart-frontend restart-all port-forward
+.PHONY: help build-images deploy-db deploy-backend-db deploy-all clean-db clean-all status logs restart-db restart-backend restart-frontend restart-all port-forward generate-env
 
 # Default target
 help:
 	@echo "Citary K8s Development Environment"
 	@echo "================================="
+	@echo ""
+	@echo "Setup Commands:"
+	@echo "  make generate-env       - Generate ConfigMap and Secret from .env"
 	@echo ""
 	@echo "Build Commands:"
 	@echo "  make build-images        - Build all Docker images"
@@ -34,6 +37,15 @@ help:
 	@echo "  make port-forward       - Forward ports for local access"
 	@echo "  make port-forward-db    - Forward database port (5432)"
 
+# Generate ConfigMap and Secret from .env file
+generate-env:
+	@echo "Generating ConfigMap and Secret from .env..."
+	@if command -v pwsh > /dev/null 2>&1; then \
+		pwsh -ExecutionPolicy Bypass -File scripts/generate-env.ps1; \
+	else \
+		bash scripts/generate-env.sh; \
+	fi
+
 # Build all images
 build-images: build-db build-backend build-frontend
 	@echo "All images built successfully"
@@ -52,7 +64,7 @@ build-frontend:
 	@cd ../citary-frontend && docker build -t citary-frontend:latest .
 
 # Deploy database only
-deploy-db: build-db
+deploy-db: generate-env build-db
 	@echo "Deploying database..."
 	@kubectl apply -f manifests/namespace.yaml
 	@kubectl apply -f manifests/secret.yaml
@@ -65,7 +77,7 @@ deploy-db: build-db
 	@echo "Credentials: root/root"
 
 # Deploy database and backend
-deploy-backend-db: build-db build-backend
+deploy-backend-db: generate-env build-db build-backend
 	@echo "Deploying database and backend..."
 	@kubectl apply -f manifests/namespace.yaml
 	@kubectl apply -f manifests/configmap.yaml
@@ -81,7 +93,7 @@ deploy-backend-db: build-db build-backend
 	@echo "Database URL: localhost:30432"
 
 # Deploy all components
-deploy-all: build-images
+deploy-all: generate-env build-images
 	@echo "Deploying all components..."
 	@kubectl apply -f manifests/namespace.yaml
 	@kubectl apply -f manifests/configmap.yaml

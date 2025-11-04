@@ -1,0 +1,628 @@
+erDiagram
+    %% ============================================================================
+    %% SISTEMA DE GESTIÓN DE CITAS Y CLIENTES - CORE SCHEMA
+    %% Diagrama de Entidad-Relación en Mermaid
+    %% ============================================================================
+
+    %% CORE SCHEMA - Configuración del sistema
+    core_country {
+        SERIAL cou_id PK
+        VARCHAR cou_name
+        VARCHAR cou_code UK
+        VARCHAR cou_phone_code
+        TIMESTAMP cou_created_date
+        VARCHAR cou_record_status
+    }
+
+    core_province {
+        SERIAL pro_id PK
+        INTEGER id_country FK
+        VARCHAR pro_name
+        VARCHAR pro_code
+        TIMESTAMP pro_created_date
+        VARCHAR pro_record_status
+    }
+
+    core_city {
+        SERIAL cit_id PK
+        INTEGER id_country FK
+        INTEGER id_province FK
+        VARCHAR cit_name
+        VARCHAR cit_postal_code
+        TIMESTAMP cit_created_date
+        VARCHAR cit_record_status
+    }
+
+    core_identification_type {
+        SERIAL ity_id PK
+        VARCHAR ity_name
+        VARCHAR ity_code UK
+        TEXT ity_description
+        TIMESTAMP ity_created_date
+        VARCHAR ity_record_status
+    }
+
+    core_role {
+        SERIAL rol_id PK
+        VARCHAR rol_name
+        ENUM rol_code
+        TEXT rol_description
+        JSONB rol_permissions
+        TIMESTAMP rol_created_date
+        VARCHAR rol_record_status
+    }
+
+    %% DATA SCHEMA - Entidades principales
+    data_user {
+        SERIAL use_id PK
+        INTEGER id_role FK
+        VARCHAR use_email UK
+        VARCHAR use_password_hash
+        BOOLEAN use_email_verified
+        BOOLEAN use_phone_verified
+        BOOLEAN use_two_factor_enabled
+        VARCHAR use_two_factor_secret
+        TIMESTAMP use_last_login
+        INTEGER use_login_attempts
+        TIMESTAMP use_locked_until
+        TIMESTAMP use_terms_accepted_at
+        TIMESTAMP use_privacy_accepted_at
+        TIMESTAMP use_created_date
+        VARCHAR use_record_status
+    }
+
+    data_address {
+        SERIAL add_id PK
+        INTEGER id_country FK
+        INTEGER id_province FK
+        INTEGER id_city FK
+        TEXT add_street_address
+        VARCHAR add_apartment
+        VARCHAR add_postal_code
+        DECIMAL add_latitude
+        DECIMAL add_longitude
+        BOOLEAN add_is_primary
+        TIMESTAMP add_created_date
+        VARCHAR add_record_status
+    }
+
+    data_contact_info {
+        SERIAL con_id PK
+        VARCHAR con_email
+        VARCHAR con_phone
+        VARCHAR con_mobile
+        VARCHAR con_emergency_contact
+        VARCHAR con_emergency_contact_name
+        BOOLEAN con_is_primary
+        BOOLEAN con_verified_email
+        BOOLEAN con_verified_phone
+        TIMESTAMP con_created_date
+        VARCHAR con_record_status
+    }
+
+    data_person {
+        SERIAL per_id PK
+        INTEGER id_user FK
+        INTEGER id_identification_type FK
+        VARCHAR per_document_number
+        VARCHAR per_first_name
+        VARCHAR per_middle_name
+        VARCHAR per_last_name
+        VARCHAR per_second_last_name
+        DATE per_date_of_birth
+        VARCHAR per_gender
+        INTEGER id_nationality FK
+        INTEGER id_address FK
+        INTEGER id_contact_info FK
+        TEXT per_profile_image_url
+        TEXT per_notes
+        TIMESTAMP per_created_date
+        VARCHAR per_record_status
+    }
+
+    data_user_session {
+        SERIAL ses_id PK
+        INTEGER id_user FK
+        VARCHAR ses_token_hash
+        JSONB ses_device_info
+        INET ses_ip_address
+        TEXT ses_user_agent
+        TIMESTAMP ses_expires_at
+        TIMESTAMP ses_revoked_at
+        TIMESTAMP ses_created_date
+        VARCHAR ses_record_status
+    }
+
+    data_password_reset_token {
+        SERIAL prt_id PK
+        INTEGER id_user FK
+        VARCHAR prt_token_hash
+        TIMESTAMP prt_expires_at
+        TIMESTAMP prt_used_at
+        TIMESTAMP prt_created_date
+        VARCHAR prt_record_status
+    }
+
+    data_organization {
+        SERIAL org_id PK
+        INTEGER id_owner FK
+        VARCHAR org_name
+        VARCHAR org_legal_name
+        VARCHAR org_tax_id
+        TEXT org_description
+        VARCHAR org_website
+        TEXT org_logo_url
+        INTEGER id_address FK
+        INTEGER id_contact_info FK
+        JSONB org_business_hours
+        VARCHAR org_time_zone
+        VARCHAR org_subscription_plan
+        TIMESTAMP org_subscription_expires_at
+        TIMESTAMP org_created_date
+        VARCHAR org_record_status
+    }
+
+    data_organization_member {
+        SERIAL mem_id PK
+        INTEGER id_organization FK
+        INTEGER id_user FK
+        INTEGER id_role FK
+        VARCHAR mem_title
+        VARCHAR mem_department
+        VARCHAR mem_employee_id
+        DATE mem_hire_date
+        DECIMAL mem_salary
+        DECIMAL mem_commission_rate
+        JSONB mem_permissions
+        TIMESTAMP mem_created_date
+        VARCHAR mem_record_status
+    }
+
+    data_location {
+        SERIAL loc_id PK
+        INTEGER id_organization FK
+        VARCHAR loc_name
+        ENUM loc_type
+        VARCHAR loc_code
+        TEXT loc_description
+        INTEGER loc_capacity
+        INTEGER id_address FK
+        INTEGER id_contact_info FK
+        JSONB loc_equipment
+        JSONB loc_accessibility_features
+        JSONB loc_operating_hours
+        BOOLEAN loc_is_virtual
+        TEXT loc_virtual_meeting_url
+        TIMESTAMP loc_created_date
+        VARCHAR loc_record_status
+    }
+
+    data_specialty {
+        SERIAL spe_id PK
+        INTEGER id_organization FK
+        VARCHAR spe_name
+        ENUM spe_type
+        TEXT spe_description
+        INTEGER spe_default_duration
+        VARCHAR spe_color_code
+        DECIMAL spe_price
+        BOOLEAN spe_requires_preparation
+        TEXT spe_preparation_instructions
+        TIMESTAMP spe_created_date
+        VARCHAR spe_record_status
+    }
+
+    data_professional_specialty {
+        SERIAL prs_id PK
+        INTEGER id_organization_member FK
+        INTEGER id_specialty FK
+        VARCHAR prs_license_number
+        DATE prs_license_expiry
+        VARCHAR prs_certification_level
+        INTEGER prs_years_experience
+        INTEGER prs_appointment_duration
+        DECIMAL prs_price
+        BOOLEAN prs_is_primary
+        TIMESTAMP prs_created_date
+        VARCHAR prs_record_status
+    }
+
+    data_work_schedule {
+        SERIAL wsc_id PK
+        INTEGER id_organization_member FK
+        INTEGER id_location FK
+        INTEGER wsc_day_of_week
+        TIME wsc_start_time
+        TIME wsc_end_time
+        TIME wsc_break_start_time
+        TIME wsc_break_end_time
+        INTEGER wsc_max_appointments_per_day
+        INTEGER wsc_max_appointments_per_hour
+        INTEGER wsc_buffer_time_minutes
+        DATE wsc_effective_from
+        DATE wsc_effective_until
+        TIMESTAMP wsc_created_date
+        VARCHAR wsc_record_status
+    }
+
+    data_schedule_exception {
+        SERIAL sce_id PK
+        INTEGER id_organization_member FK
+        INTEGER id_location FK
+        DATE sce_start_date
+        DATE sce_end_date
+        TIME sce_start_time
+        TIME sce_end_time
+        VARCHAR sce_exception_type
+        VARCHAR sce_reason
+        BOOLEAN sce_is_available
+        TIMESTAMP sce_created_date
+        VARCHAR sce_record_status
+    }
+
+    %% SCHEDULING SCHEMA - Sistema de citas
+    scheduling_patient {
+        SERIAL pat_id PK
+        INTEGER id_user FK
+        INTEGER id_person FK
+        VARCHAR pat_code UK
+        VARCHAR pat_primary_insurance
+        VARCHAR pat_secondary_insurance
+        INTEGER id_emergency_contact FK
+        VARCHAR pat_preferred_language
+        JSONB pat_communication_preferences
+        TEXT pat_medical_alerts
+        BOOLEAN pat_is_minor
+        INTEGER id_guardian FK
+        TIMESTAMP pat_created_date
+        VARCHAR pat_record_status
+    }
+
+    scheduling_patient_relationship {
+        SERIAL rel_id PK
+        INTEGER id_patient FK
+        INTEGER id_related_patient FK
+        ENUM rel_relationship_type
+        BOOLEAN rel_can_schedule_for
+        BOOLEAN rel_can_view_history
+        BOOLEAN rel_is_emergency_contact
+        TEXT rel_notes
+        TIMESTAMP rel_created_date
+        VARCHAR rel_record_status
+    }
+
+    scheduling_appointment {
+        SERIAL app_id PK
+        INTEGER id_organization FK
+        INTEGER id_patient FK
+        INTEGER id_professional FK
+        INTEGER id_specialty FK
+        INTEGER id_location FK
+        INTEGER id_scheduled_by FK
+        VARCHAR app_number UK
+        DATE app_scheduled_date
+        TIME app_scheduled_time
+        INTEGER app_duration_minutes
+        ENUM app_status
+        TIMESTAMP app_confirmed_at
+        TIMESTAMP app_started_at
+        TIMESTAMP app_completed_at
+        TIMESTAMP app_cancelled_at
+        TEXT app_reason_for_visit
+        TEXT app_patient_notes
+        TEXT app_staff_notes
+        TEXT app_cancellation_reason
+        DECIMAL app_service_price
+        DECIMAL app_insurance_coverage
+        DECIMAL app_patient_payment
+        VARCHAR app_payment_status
+        TIMESTAMP app_actual_arrival_time
+        TIMESTAMP app_checked_in_at
+        INTEGER app_late_arrival_minutes
+        INTEGER id_parent_appointment FK
+        INTEGER id_follow_up_appointment FK
+        BOOLEAN app_reminder_sent_24h
+        BOOLEAN app_reminder_sent_2h
+        TIMESTAMP app_created_date
+        VARCHAR app_record_status
+    }
+
+    scheduling_appointment_reminder {
+        SERIAL rem_id PK
+        INTEGER id_appointment FK
+        VARCHAR rem_type
+        TIMESTAMP rem_scheduled_for
+        TIMESTAMP rem_sent_at
+        ENUM rem_status
+        VARCHAR rem_template_used
+        TEXT rem_content
+        TEXT rem_error_message
+        TIMESTAMP rem_created_date
+        VARCHAR rem_record_status
+    }
+
+    scheduling_time_block {
+        SERIAL blo_id PK
+        INTEGER id_organization FK
+        INTEGER id_professional FK
+        INTEGER id_location FK
+        VARCHAR blo_title
+        TEXT blo_description
+        TIMESTAMP blo_start_datetime
+        TIMESTAMP blo_end_datetime
+        VARCHAR blo_type
+        BOOLEAN blo_is_recurring
+        JSONB blo_recurrence_pattern
+        INTEGER id_created_by FK
+        TIMESTAMP blo_created_date
+        VARCHAR blo_record_status
+    }
+
+    %% MEDICAL SCHEMA - Datos médicos
+    medical_record {
+        SERIAL rec_id PK
+        INTEGER id_patient FK
+        INTEGER id_organization FK
+        VARCHAR rec_number UK
+        VARCHAR rec_blood_type
+        TEXT rec_allergies
+        TEXT rec_chronic_conditions
+        TEXT rec_current_medications
+        TEXT rec_family_history
+        TEXT rec_social_history
+        INTEGER id_created_by FK
+        TIMESTAMP rec_created_date
+        VARCHAR rec_record_status
+    }
+
+    medical_consultation {
+        SERIAL con_id PK
+        INTEGER id_appointment FK
+        INTEGER id_medical_record FK
+        INTEGER id_professional FK
+        TEXT con_chief_complaint
+        TEXT con_present_illness
+        TEXT con_physical_examination
+        TEXT con_assessment
+        TEXT con_plan
+        INTEGER con_systolic_bp
+        INTEGER con_diastolic_bp
+        INTEGER con_heart_rate
+        DECIMAL con_temperature
+        INTEGER con_respiratory_rate
+        DECIMAL con_weight
+        DECIMAL con_height
+        DECIMAL con_bmi
+        BOOLEAN con_next_appointment_recommended
+        INTEGER con_next_appointment_in_days
+        TIMESTAMP con_created_date
+        VARCHAR con_record_status
+    }
+
+    medical_diagnosis {
+        SERIAL dia_id PK
+        INTEGER id_consultation FK
+        VARCHAR dia_icd10_code
+        TEXT dia_text
+        VARCHAR dia_type
+        VARCHAR dia_severity
+        VARCHAR dia_status
+        DATE dia_onset_date
+        DATE dia_resolution_date
+        TIMESTAMP dia_created_date
+        VARCHAR dia_record_status
+    }
+
+    medical_prescription {
+        SERIAL pre_id PK
+        INTEGER id_consultation FK
+        VARCHAR pre_medication_name
+        VARCHAR pre_dosage
+        VARCHAR pre_frequency
+        VARCHAR pre_duration
+        INTEGER pre_quantity
+        INTEGER pre_refills
+        TEXT pre_instructions
+        DATE pre_prescribed_date
+        DATE pre_start_date
+        DATE pre_end_date
+        TIMESTAMP pre_created_date
+        VARCHAR pre_record_status
+    }
+
+    medical_lab_order {
+        SERIAL lab_id PK
+        INTEGER id_consultation FK
+        VARCHAR lab_test_name
+        VARCHAR lab_test_code
+        VARCHAR lab_urgency
+        TEXT lab_instructions
+        DATE lab_ordered_date
+        DATE lab_expected_date
+        VARCHAR lab_status
+        TEXT lab_results
+        DATE lab_results_date
+        TEXT lab_abnormal_flags
+        TEXT lab_reference_ranges
+        INTEGER id_interpreted_by FK
+        TIMESTAMP lab_created_date
+        VARCHAR lab_record_status
+    }
+
+    medical_attachment {
+        SERIAL att_id PK
+        INTEGER id_consultation FK
+        INTEGER id_appointment FK
+        VARCHAR att_file_name
+        VARCHAR att_file_type
+        BIGINT att_file_size
+        TEXT att_file_url
+        TEXT att_description
+        VARCHAR att_category
+        INTEGER id_uploaded_by FK
+        TIMESTAMP att_created_date
+        VARCHAR att_record_status
+    }
+
+    %% NOTIFICATIONS SCHEMA - Sistema de notificaciones
+    notifications_template {
+        SERIAL tem_id PK
+        INTEGER id_organization FK
+        VARCHAR tem_name
+        VARCHAR tem_type
+        VARCHAR tem_trigger_event
+        VARCHAR tem_subject
+        TEXT tem_content
+        JSONB tem_variables
+        TIMESTAMP tem_created_date
+        VARCHAR tem_record_status
+    }
+
+    notifications_sent {
+        SERIAL not_id PK
+        INTEGER id_template FK
+        INTEGER id_recipient FK
+        INTEGER id_appointment FK
+        VARCHAR not_type
+        VARCHAR not_recipient_address
+        VARCHAR not_subject
+        TEXT not_content
+        ENUM not_status
+        TIMESTAMP not_sent_at
+        TIMESTAMP not_delivered_at
+        TIMESTAMP not_read_at
+        TEXT not_error_message
+        VARCHAR not_external_id
+        TIMESTAMP not_created_date
+        VARCHAR not_record_status
+    }
+
+    %% AUDIT SCHEMA - Auditoría
+    audit_activity_log {
+        SERIAL log_id PK
+        INTEGER id_user FK
+        INTEGER id_organization FK
+        VARCHAR log_action
+        VARCHAR log_resource_type
+        INTEGER log_resource_id
+        JSONB log_old_values
+        JSONB log_new_values
+        INET log_ip_address
+        TEXT log_user_agent
+        TIMESTAMP log_created_date
+        VARCHAR log_record_status
+    }
+
+    audit_medical_access_log {
+        SERIAL mal_id PK
+        INTEGER id_user FK
+        INTEGER id_patient FK
+        INTEGER id_medical_record FK
+        INTEGER id_consultation FK
+        VARCHAR mal_access_type
+        TEXT mal_justification
+        INET mal_ip_address
+        TIMESTAMP mal_created_date
+        VARCHAR mal_record_status
+    }
+
+    %% ============================================================================
+    %% RELACIONES
+    %% ============================================================================
+
+    %% CORE relationships
+    core_province ||--o{ core_city : "contains"
+    core_country ||--o{ core_province : "contains"
+    core_country ||--o{ core_city : "contains"
+
+    %% DATA relationships
+    core_role ||--o{ data_user : "has"
+    data_user ||--o| data_person : "links to"
+    data_user ||--o{ data_user_session : "has"
+    data_user ||--o{ data_password_reset_token : "has"
+    data_user ||--o{ data_organization : "owns"
+
+    core_identification_type ||--o{ data_person : "identifies"
+    core_country ||--o{ data_person : "nationality"
+    data_address ||--o| data_person : "lives at"
+    data_contact_info ||--o| data_person : "contact"
+
+    core_country ||--o{ data_address : "located in"
+    core_province ||--o{ data_address : "located in"
+    core_city ||--o{ data_address : "located in"
+
+    data_organization ||--o{ data_organization_member : "has"
+    data_user ||--o{ data_organization_member : "member of"
+    core_role ||--o{ data_organization_member : "has role"
+    data_address ||--o| data_organization : "located at"
+    data_contact_info ||--o| data_organization : "contact"
+
+    data_organization ||--o{ data_location : "has"
+    data_address ||--o| data_location : "located at"
+    data_contact_info ||--o| data_location : "contact"
+
+    data_organization ||--o{ data_specialty : "offers"
+    data_organization_member ||--o{ data_professional_specialty : "has"
+    data_specialty ||--o{ data_professional_specialty : "is"
+
+    data_organization_member ||--o{ data_work_schedule : "has"
+    data_location ||--o{ data_work_schedule : "at"
+    data_organization_member ||--o{ data_schedule_exception : "has"
+    data_location ||--o{ data_schedule_exception : "at"
+
+    %% SCHEDULING relationships
+    data_user ||--o| scheduling_patient : "may have"
+    data_person ||--|| scheduling_patient : "is"
+    data_contact_info ||--o| scheduling_patient : "emergency contact"
+    scheduling_patient ||--o| scheduling_patient : "guardian of"
+
+    scheduling_patient ||--o{ scheduling_patient_relationship : "has"
+    scheduling_patient ||--o{ scheduling_patient_relationship : "related to"
+
+    data_organization ||--o{ scheduling_appointment : "manages"
+    scheduling_patient ||--o{ scheduling_appointment : "has"
+    data_organization_member ||--o{ scheduling_appointment : "professional"
+    data_specialty ||--o{ scheduling_appointment : "type"
+    data_location ||--o{ scheduling_appointment : "at"
+    data_user ||--o{ scheduling_appointment : "scheduled by"
+    scheduling_appointment ||--o| scheduling_appointment : "parent"
+    scheduling_appointment ||--o| scheduling_appointment : "follow up"
+
+    scheduling_appointment ||--o{ scheduling_appointment_reminder : "has"
+
+    data_organization ||--o{ scheduling_time_block : "has"
+    data_organization_member ||--o{ scheduling_time_block : "blocks"
+    data_location ||--o{ scheduling_time_block : "at"
+    data_user ||--o{ scheduling_time_block : "created by"
+
+    %% MEDICAL relationships
+    scheduling_patient ||--o{ medical_record : "has"
+    data_organization ||--o{ medical_record : "manages"
+    data_user ||--o{ medical_record : "created by"
+
+    scheduling_appointment ||--|| medical_consultation : "generates"
+    medical_record ||--o{ medical_consultation : "part of"
+    data_organization_member ||--o{ medical_consultation : "performed by"
+
+    medical_consultation ||--o{ medical_diagnosis : "has"
+    medical_consultation ||--o{ medical_prescription : "has"
+    medical_consultation ||--o{ medical_lab_order : "has"
+    medical_consultation ||--o{ medical_attachment : "has"
+    data_organization_member ||--o{ medical_lab_order : "interpreted by"
+
+    scheduling_appointment ||--o{ medical_attachment : "attached to"
+    data_user ||--o{ medical_attachment : "uploaded by"
+
+    %% NOTIFICATIONS relationships
+    data_organization ||--o{ notifications_template : "has"
+    notifications_template ||--o{ notifications_sent : "uses"
+    data_user ||--o{ notifications_sent : "receives"
+    scheduling_appointment ||--o{ notifications_sent : "about"
+
+    %% AUDIT relationships
+    data_user ||--o{ audit_activity_log : "performed by"
+    data_organization ||--o{ audit_activity_log : "in context of"
+    data_user ||--o{ audit_medical_access_log : "accessed by"
+    scheduling_patient ||--o{ audit_medical_access_log : "about"
+    medical_record ||--o{ audit_medical_access_log : "accessed"
+    medical_consultation ||--o{ audit_medical_access_log : "accessed"
