@@ -1,4 +1,11 @@
-.PHONY: help build-images deploy-db deploy-backend-db deploy-all clean-db clean-all status logs restart-db restart-backend restart-frontend restart-all port-forward generate-env
+.PHONY: help build-images rebuild-backend deploy-db deploy-backend redeploy-backend deploy-backend-db deploy-all clean-db clean-all status logs restart-db restart-backend restart-frontend restart-all port-forward generate-env
+
+# Detect OS
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS := Windows
+else
+    DETECTED_OS := $(shell uname -s)
+endif
 
 # Default target
 help:
@@ -12,10 +19,13 @@ help:
 	@echo "  make build-images        - Build all Docker images"
 	@echo "  make build-db           - Build database image only"
 	@echo "  make build-backend      - Build backend image only"
+	@echo "  make rebuild-backend    - Rebuild backend (no cache, for new changes)"
 	@echo "  make build-frontend     - Build frontend image only"
 	@echo ""
 	@echo "Deploy Commands:"
 	@echo "  make deploy-db          - Deploy database only (port 30432)"
+	@echo "  make deploy-backend     - Deploy backend only"
+	@echo "  make redeploy-backend   - Rebuild (no cache) and deploy backend"
 	@echo "  make deploy-backend-db  - Deploy database and backend"
 	@echo "  make deploy-all         - Deploy all components"
 	@echo ""
@@ -40,11 +50,11 @@ help:
 # Generate ConfigMap and Secret from .env file
 generate-env:
 	@echo "Generating ConfigMap and Secret from .env..."
-	@if command -v pwsh > /dev/null 2>&1; then \
-		pwsh -ExecutionPolicy Bypass -File scripts/generate-env.ps1; \
-	else \
-		bash scripts/generate-env.sh; \
-	fi
+ifeq ($(DETECTED_OS),Windows)
+	@pwsh -ExecutionPolicy Bypass -File scripts/generate-env.ps1
+else
+	@bash scripts/generate-env.sh
+endif
 
 # Build all images
 build-images: build-db build-backend build-frontend
@@ -58,6 +68,10 @@ build-db:
 build-backend:
 	@echo "Building backend image..."
 	@cd ../citary-backend && docker build -t citary-backend:latest .
+
+rebuild-backend:
+	@echo "Rebuilding backend image (no cache)..."
+	@cd ../citary-backend && docker build --no-cache -t citary-backend:latest .
 
 build-frontend:
 	@echo "Building frontend image..."
@@ -75,6 +89,32 @@ deploy-db: generate-env build-db
 	@echo "✓ Database deployed!"
 	@echo "Database URL: localhost:30432"
 	@echo "Credentials: root/root"
+
+# Deploy backend only
+deploy-backend: generate-env build-backend
+	@echo "Deploying backend..."
+	@kubectl apply -f manifests/namespace.yaml
+	@kubectl apply -f manifests/configmap.yaml
+	@kubectl apply -f manifests/secret.yaml
+	@kubectl apply -f manifests/backend/deployment.yaml
+	@kubectl apply -f manifests/backend/service.yaml
+	@kubectl rollout restart deployment backend -n citary
+	@echo ""
+	@echo "✓ Backend deployed!"
+	@echo "Backend URL: http://localhost:30001"
+
+# Rebuild and deploy backend (no cache)
+redeploy-backend: generate-env rebuild-backend
+	@echo "Deploying backend..."
+	@kubectl apply -f manifests/namespace.yaml
+	@kubectl apply -f manifests/configmap.yaml
+	@kubectl apply -f manifests/secret.yaml
+	@kubectl apply -f manifests/backend/deployment.yaml
+	@kubectl apply -f manifests/backend/service.yaml
+	@kubectl rollout restart deployment backend -n citary
+	@echo ""
+	@echo "✓ Backend rebuilt and deployed!"
+	@echo "Backend URL: http://localhost:30001"
 
 # Deploy database and backend
 deploy-backend-db: generate-env build-db build-backend
@@ -120,7 +160,11 @@ clean-db:
 	@kubectl delete -n citary service postgres-service --ignore-not-found=true
 	@kubectl delete -n citary pvc postgres-pvc --ignore-not-found=true
 	@echo "Waiting for resources to be deleted..."
+ifeq ($(DETECTED_OS),Windows)
+	@pwsh -Command "Start-Sleep -Seconds 10"
+else
 	@sleep 10
+endif
 	@echo "Verifying PVC is deleted..."
 	@kubectl wait --for=delete pvc/postgres-pvc -n citary --timeout=60s 2>/dev/null || true
 	@echo "Rebuilding database image..."
