@@ -181,6 +181,8 @@ CREATE TABLE
     use_email VARCHAR(255) UNIQUE NOT NULL,
     use_password_hash VARCHAR(255) NOT NULL,
     use_email_verified BOOLEAN DEFAULT FALSE,
+    use_verification_token VARCHAR(64) NULL,
+    use_verification_token_expires_at TIMESTAMP NULL,
     use_phone_verified BOOLEAN DEFAULT FALSE,
     use_two_factor_enabled BOOLEAN DEFAULT FALSE,
     use_two_factor_secret VARCHAR(255),
