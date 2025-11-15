@@ -31,6 +31,8 @@ $secretFile = Join-Path $ProjectDir "manifests\secret.yaml"
 kubectl create secret generic citary-secret `
     --from-literal="DATABASE_URL=$($envVars['DATABASE_URL'])" `
     --from-literal="POSTGRES_PASSWORD=$($envVars['DB_PASSWORD'])" `
+    --from-literal="SMTP_USERNAME=$($envVars['SMTP_USERNAME'])" `
+    --from-literal="SMTP_PASSWORD=$($envVars['SMTP_PASSWORD'])" `
     --namespace=citary `
     --dry-run=client -o yaml | Out-File -FilePath $secretFile -Encoding utf8
 
@@ -40,6 +42,11 @@ $configFile = Join-Path $ProjectDir "manifests\configmap.yaml"
 
 kubectl create configmap citary-config `
     --from-literal="PORT=$($envVars['PORT'])" `
+    --from-literal="SMTP_HOST=$($envVars['SMTP_HOST'])" `
+    --from-literal="SMTP_PORT=$($envVars['SMTP_PORT'])" `
+    --from-literal="SMTP_FROM_EMAIL=$($envVars['SMTP_FROM_EMAIL'])" `
+    --from-literal="SMTP_FROM_NAME=$($envVars['SMTP_FROM_NAME'])" `
+    --from-literal="FRONTEND_URL=$($envVars['FRONTEND_URL'])" `
     --namespace=citary `
     --dry-run=client -o yaml | Out-File -FilePath $configFile -Encoding utf8
 

@@ -31,6 +31,8 @@ echo -e "${GREEN}Generating Secret...${NC}"
 kubectl create secret generic citary-secret \
     --from-literal=DATABASE_URL="$DATABASE_URL" \
     --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" \
+    --from-literal=SMTP_USERNAME="$SMTP_USERNAME" \
+    --from-literal=SMTP_PASSWORD="$SMTP_PASSWORD" \
     --namespace=citary \
     --dry-run=client -o yaml > "$PROJECT_DIR/manifests/secret.yaml"
 
@@ -38,6 +40,11 @@ kubectl create secret generic citary-secret \
 echo -e "${GREEN}Generating ConfigMap...${NC}"
 kubectl create configmap citary-config \
     --from-literal=PORT="$PORT" \
+    --from-literal=SMTP_HOST="$SMTP_HOST" \
+    --from-literal=SMTP_PORT="$SMTP_PORT" \
+    --from-literal=SMTP_FROM_EMAIL="$SMTP_FROM_EMAIL" \
+    --from-literal=SMTP_FROM_NAME="$SMTP_FROM_NAME" \
+    --from-literal=FRONTEND_URL="$FRONTEND_URL" \
     --namespace=citary \
     --dry-run=client -o yaml > "$PROJECT_DIR/manifests/configmap.yaml"
 

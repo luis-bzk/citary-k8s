@@ -1,6 +1,11 @@
 apiVersion: v1
 data:
+  FRONTEND_URL: http://localhost:3000
   PORT: "3001"
+  SMTP_FROM_EMAIL: noreply@citary.com
+  SMTP_FROM_NAME: Citary
+  SMTP_HOST: sandbox.smtp.mailtrap.io
+  SMTP_PORT: "2525"
 kind: ConfigMap
 metadata:
   creationTimestamp: null
